@@ -4,7 +4,23 @@ import 'package:html/parser.dart' as html_parser;
 /// Utility class for converting HTML to Markdown.
 class HtmlToMarkdown {
   /// Allow constant.
-  const HtmlToMarkdown();
+  const HtmlToMarkdown({
+    this.ignoredTags = const [
+      'script',
+      'html',
+      'head',
+      'div',
+      'span',
+      'style',
+      'link',
+    ],
+  });
+
+  /// Tags to ignore.
+  ///
+  /// For every entry in [ignoredTags], `''` will be returned when parsing any
+  /// tag with the given name.
+  final List<String> ignoredTags;
 
   /// Convert HTML string to Markdown string.
   String convert(final String html) {
@@ -18,9 +34,12 @@ class HtmlToMarkdown {
     if (node is Text) {
       return node.text;
     }
-
     if (node is Element) {
-      switch (node.localName) {
+      final tag = node.localName;
+      if (ignoredTags.contains(tag)) {
+        return '';
+      }
+      switch (tag) {
         case 'h1':
           return '# ${_convertChildren(node)}\n\n';
         case 'h2':
@@ -58,7 +77,12 @@ class HtmlToMarkdown {
           return '`${_convertChildren(node)}`';
         case 'pre':
           return '```\n${_convertChildren(node)}\n```\n\n';
+        case 'br':
+          return '\n';
+        case 'center':
+          return '        ${_convertChildren(node)}';
         default:
+          print('<$tag>');
           return _convertChildren(node);
       }
     }

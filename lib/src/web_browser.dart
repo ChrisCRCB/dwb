@@ -55,7 +55,11 @@ class WebBrowser {
           logger.err('Cannot handle data of type ${data.runtimeType}.');
         }
       }
-      progress.complete();
+      progress.complete('Page loaded.');
+      final t = tab;
+      if (t != null) {
+        logger.info(t.contents);
+      }
       // ignore: avoid_catches_without_on_clauses
     } catch (e) {
       progress.fail(e.toString());
