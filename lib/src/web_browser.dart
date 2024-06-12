@@ -31,17 +31,34 @@ class WebBrowser {
 
   /// Load [url].
   Future<void> get(final String url) async {
-    final response = await http.get(url);
-    final code = response.statusCode;
-    if (code != 200) {
-      tab = BrowserTab(url: url, contents: '!! Error !!: Status $code');
+    final String actualUrl;
+    if (!url.contains('://')) {
+      actualUrl = 'https://$url';
     } else {
-      final data = response.data;
-      if (data is String) {
-        tab = BrowserTab(url: url, contents: convertHtml(data));
+      actualUrl = url;
+    }
+    final uri = Uri.tryParse(actualUrl);
+    if (uri == null) {
+      throw SilentError(message: 'Invalid URL: $url');
+    }
+    final progress = logger.progress('Loading $uri...');
+    try {
+      final response = await http.get(uri.toString());
+      final code = response.statusCode;
+      if (code != 200) {
+        tab = BrowserTab(url: url, contents: '!! Error !!: Status $code');
       } else {
-        logger.err('Cannot handle data of type ${data.runtimeType}.');
+        final data = response.data;
+        if (data is String) {
+          tab = BrowserTab(url: url, contents: convertHtml(data));
+        } else {
+          logger.err('Cannot handle data of type ${data.runtimeType}.');
+        }
       }
+      progress.complete();
+      // ignore: avoid_catches_without_on_clauses
+    } catch (e) {
+      progress.fail(e.toString());
     }
   }
 
@@ -49,7 +66,7 @@ class WebBrowser {
   Future<void> run() async {
     command_parser:
     while (true) {
-      final line = logger.prompt('> ');
+      final line = logger.prompt('DWB>');
       if (line.isNotEmpty) {
         final parts = line.split(' ');
         final commandName = parts.first;
